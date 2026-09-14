@@ -15,10 +15,46 @@ Welcome to the **GramRozgar** repository! Below is the breakdown of our branch s
 
 ---
 
-## 🚀 Quick Workflow
+# Git & GitHub Quick Guide
 
-1. Switch to your target branch:
-   ```bash
-   git checkout <branch-name>
-   
-   
+A single-line, copy-paste reference to get set up and push your work without conflicts.
+
+---
+
+### 1. First-Time Setup
+Clone the repository, open the project folder, and switch directly to your assigned branch:
+
+```bash
+git clone <REPO_URL> && cd <REPO_FOLDER_NAME> && git checkout <branch-name>
+```
+
+---
+
+### 2. Before Coding (Daily Sync)
+Always run this before starting your work to pull the latest changes:
+
+```bash
+git pull origin <branch-name>
+```
+
+---
+
+### 3. Save & Push (All-in-One Command)
+When you are done coding, run this single line to stage, commit, and push your updates to GitHub:
+
+```bash
+git add . && git commit -m "Updated code" && git push origin <branch-name>
+```
+
+---
+
+### 4. Useful Check
+Check your current branch and see any modified files anytime:
+
+```bash
+git status
+```
+
+Do not commit to main: Keep all commits inside your designated branch.
+
+Lost or confused? Run git status anytime to see your current branch and untracked changes.
