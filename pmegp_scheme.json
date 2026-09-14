@@ -1,0 +1,66 @@
+{
+    "scheme_id": "PMEGP_2026",
+    "scheme_name": "Prime Minister's Employment Generation Programme",
+    "nodal_agency": "KVIC (Khadi and Village Industries Commission)",
+    "category": "Credit-Linked Subsidy Scheme",
+    "target_beneficiaries": {
+        "min_age": 18,
+        "educational_qualification": "At least 8th standard pass for projects costing above Rs. 10 lakh in manufacturing and above Rs. 5 lakh in business/service sector",
+        "eligible_entities": [
+            "Individuals",
+            "Self Help Groups (SHGs)",
+            "Institutions registered under Societies Registration Act 1860",
+            "Production Co-operative Societies",
+            "Charitable Trusts"
+        ]
+    },
+    "financial_structure": {
+        "max_project_cost": {
+            "manufacturing_sector_in_inr": 5000000,
+            "business_service_sector_in_inr": 2000000
+        },
+        "subsidy_and_contribution_matrix": [
+            {
+                "category_of_beneficiary": "General Category",
+                "location": "Urban",
+                "own_contribution_percentage": 10,
+                "subsidy_margin_money_percentage": 15,
+                "bank_loan_percentage": 75
+            },
+            {
+                "category_of_beneficiary": "General Category",
+                "location": "Rural",
+                "own_contribution_percentage": 10,
+                "subsidy_margin_money_percentage": 25,
+                "bank_loan_percentage": 65
+            },
+            {
+                "category_of_beneficiary": "Special Category (SC/ST/OBC/Minorities/Women/Ex-servicemen/PH/NER/Hilly and Border areas)",
+                "location": "Urban",
+                "own_contribution_percentage": 5,
+                "subsidy_margin_money_percentage": 25,
+                "bank_loan_percentage": 70
+            },
+            {
+                "category_of_beneficiary": "Special Category (SC/ST/OBC/Minorities/Women/Ex-servicemen/PH/NER/Hilly and Border areas)",
+                "location": "Rural",
+                "own_contribution_percentage": 5,
+                "subsidy_margin_money_percentage": 35,
+                "bank_loan_percentage": 60
+            }
+        ]
+    },
+    "loan_terms": {
+        "moratorium_period_months": "6 to 12",
+        "repayment_tenure_years": "3 to 7",
+        "rate_of_interest": "Standard commercial bank lending rates applicable to micro-enterprises"
+    },
+    "required_documents": [
+        "Aadhaar Card",
+        "PAN Card",
+        "Project Report / Detailed Feasibility Plan",
+        "Caste / Category Certificate (if applicable)",
+        "Educational / Skill Development (EDP) Certificate",
+        "Proof of Rural Location (Panchayat Certificate/Electricity Bill)"
+    ]
+}
