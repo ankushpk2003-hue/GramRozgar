@@ -4,14 +4,17 @@ import whisper
 import requests
 import base64
 from gtts import gTTS
+from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-# Initialize FastAPI App
-app = FastAPI(title="SIH 2026 Multilingual Audio Pipeline API")
+# Load environment keys from .env file securely
+load_dotenv()
 
-# Enable CORS for frontend teammate connection
+app = FastAPI(title="SIH 2026 Multilingual Audio Pipeline API - Production Build")
+
+# Enable CORS for cross-origin frontend communication
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,120 +23,129 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load Whisper model once on boot
-print("🤖 Loading Whisper AI Model (This takes a moment on first boot)...")
+# Initialize OpenAI Whisper model globally
+print("🤖 Initializing production Whisper AI engine...")
 whisper_model = whisper.load_model("base")
-print("✅ Whisper Model successfully loaded and ready for queries!")
+print("✅ Whisper engine active and listening!")
 
 MEDIA_DIR = "pipeline_media"
 os.makedirs(MEDIA_DIR, exist_ok=True)
 
-# 🔐 Bhashini Credentials (Will fall back cleanly if left empty)
+# Fetch secure system parameters
 BHASHINI_API_KEY = os.getenv("BHASHINI_API_KEY", "")
 BHASHINI_USER_ID = os.getenv("BHASHINI_USER_ID", "")
 
-def call_bhashini_tts(text: str, lang: str, output_path: str):
+def generate_bhashini_tts(text: str, target_lang: str, output_path: str):
     """
-    Connects to official MeitY Bhashini API for authentic regional voice output.
-    Falls back cleanly to gTTS if keys are missing or API fails.
+    Executes an authorized HTTP inference request to the official MeitY Bhashini TTS cluster.
+    Provides a high-fidelity local fallback loop if credentials evaluate as empty.
     """
     if not BHASHINI_API_KEY or not BHASHINI_USER_ID:
-        print("⚠️ No Bhashini keys found. Using local fallback voice engine.")
-        tts = gTTS(text=text, lang=lang, slow=False)
-        tts.save(output_path)
+        print("⚠️ Credentials unassigned. Initiating localized fallback processing...")
+        fallback_tts = gTTS(text=text, lang=target_lang, slow=False)
+        fallback_tts.save(output_path)
         return
 
-    # Official Bhashini Ultech / Dhruva inference endpoint layout
+    # Official Bhashini Dhruva gateway configurations
     url = "https://bhashini.gov.in"
     headers = {
         "Authorization": BHASHINI_API_KEY,
         "Content-Type": "application/json"
     }
+    
+    # Standard MeitY inference schema payload mapping
     payload = {
         "pipelineTasks": [
             {
                 "taskType": "tts",
-                "config": {"language": {"sourceLanguage": lang}, "gender": "female"}
+                "config": {
+                    "language": {"sourceLanguage": target_lang},
+                    "gender": "female"
+                }
             }
         ],
         "inputData": {"input": [{"source": text}]}
     }
     
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=5)
+        response = requests.post(url, json=payload, headers=headers, timeout=6)
         response.raise_for_status()
-        # Bhashini returns audio content as base64 string
-        audio_content = response.json()['pipelineResponse'][0]['audio'][0]['audioContent']
-        with open(output_path, "wb") as fh:
-            fh.decode(base64.b64decode(audio_content))
-        print("✅ Bhashini Audio successfully generated.")
-    except Exception as e:
-        print(f"⚠️ Bhashini API failed ({e}). Dropping back to fallback engine.")
-        tts = gTTS(text=text, lang=lang, slow=False)
-        tts.save(output_path)
+        
+        # Bhashini returns audio compressed in a base64 string stream
+        response_data = response.json()
+        audio_base64 = response_data['pipelineResponse'][0]['audio'][0]['audioContent']
+        
+        with open(output_path, "wb") as audio_file:
+            audio_file.write(base64.b64decode(audio_base64))
+        print(f"✅ Authentic Bhashini voice response compiled to: {output_path}")
+        
+    except Exception as error:
+        print(f"⚠️ Bhashini core gateway exception: {error}. Deploying local fallback audio recovery...")
+        fallback_tts = gTTS(text=text, lang=target_lang, slow=False)
+        fallback_tts.save(output_path)
 
 @app.post("/pipeline/process-voice/")
 async def process_voice_pipeline(
     audio_file: UploadFile = File(...), 
-    target_lang: str = Form("kn")  # 'kn' for Kannada, 'hi' for Hindi
+    target_lang: str = Form("kn")  # 'kn' (Kannada) or 'hi' (Hindi)
 ):
-    temp_input_path = os.path.join(MEDIA_DIR, f"temp_{audio_file.filename}")
+    temp_input = os.path.join(MEDIA_DIR, f"temp_{audio_file.filename}")
     
-    with open(temp_input_path, "wb") as buffer:
+    with open(temp_input, "wb") as buffer:
         shutil.copyfileobj(audio_file.file, buffer)
         
     try:
-        # STAGE 1: Audio to Text via Whisper AI (Local & Fast)
-        transcribe_result = whisper_model.transcribe(temp_input_path)
-        regional_text = transcribe_result["text"]
-        detected_lang = transcribe_result["language"]
+        # STAGE 1: Offline Speech-to-Text Processing via Whisper
+        transcription_data = whisper_model.transcribe(temp_input)
+        raw_transcription = transcription_data["text"]
+        detected_language = transcription_data["language"]
         
-        # STAGE 2: Translation & English System Narration Track
-        english_translation = f"System log: User requested processing for: {regional_text}"
-        english_narration_filename = f"narration_{audio_file.filename}.mp3"
-        english_narration_path = os.path.join(MEDIA_DIR, english_narration_filename)
+        # STAGE 2: English Structural Narration Processing
+        english_narration_script = f"System log context: User queried processing for: {raw_transcription}"
+        narration_filename = f"narration_{audio_file.filename}.mp3"
+        narration_output_path = os.path.join(MEDIA_DIR, narration_filename)
         
-        tts_en = gTTS(text=english_translation, lang='en', slow=False)
-        tts_en.save(english_narration_path)
+        narration_engine = gTTS(text=english_narration_script, lang='en', slow=False)
+        narration_engine.save(narration_output_path)
         
-        # STAGE 3: Final Regional Voice Response Engine (Bhashini with Fallback)
+        # STAGE 3: Multilingual Voice Synthesis (Bhashini Engine with Fallback Protection)
         if target_lang == "hi":
-            response_text_regional = f"आपकी क्वेरी मिल गई है: {regional_text}"
+            response_script = f"आपकी क्वेरी सफलतापूर्वक संसाधित हो गई है: {raw_transcription}"
         else:
-            response_text_regional = f"ನಿಮ್ಮ ಧ್ವನಿ ವಿನಂತಿ ಸ್ವೀಕರಿಸಲಾಗಿದೆ: {regional_text}"
+            response_script = f"ನಿಮ್ಮ ಧ್ವನಿ ವಿನಂತಿಯನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಪ್ರಕ್ರಿಯೆಗೊಳಿಸಲಾಗಿದೆ: {raw_transcription}"
             
-        regional_response_filename = f"response_{target_lang}_{audio_file.filename}.mp3"
-        regional_response_path = os.path.join(MEDIA_DIR, regional_response_filename)
+        response_filename = f"response_{target_lang}_{audio_file.filename}.mp3"
+        response_output_path = os.path.join(MEDIA_DIR, response_filename)
         
-        # Core API / Fallback Execution
-        call_bhashini_tts(response_text_regional, target_lang, regional_response_path)
+        generate_bhashini_tts(response_script, target_lang, response_output_path)
         
-        if os.path.exists(temp_input_path):
-            os.remove(temp_input_path)
+        # Cleanup cached audio chunk from machine memory
+        if os.path.exists(temp_input):
+            os.remove(temp_input)
             
         return JSONResponse(status_code=200, content={
             "status": "success",
-            "detected_language": detected_lang,
-            "transcription": regional_text,
-            "english_translation": english_translation,
-            "regional_response_text": response_text_regional,
+            "detected_language": detected_language,
+            "transcription": raw_transcription,
+            "english_narration_text": english_narration_script,
+            "regional_response_text": response_script,
             "links": {
-                "english_narration": f"/media/{english_narration_filename}",
-                "regional_voice_response": f"/media/{regional_response_filename}"
+                "english_narration": f"/media/{narration_filename}",
+                "regional_voice_response": f"/media/{response_filename}"
             }
         })
         
-    except Exception as e:
-        if os.path.exists(temp_input_path):
-            os.remove(temp_input_path)
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as pipeline_error:
+        if os.path.exists(temp_input):
+            os.remove(temp_input)
+        raise HTTPException(status_code=500, detail=str(pipeline_error))
 
 @app.get("/media/{filename}")
 async def get_media_file(filename: str):
     file_path = os.path.join(MEDIA_DIR, filename)
     if os.path.exists(file_path):
         return FileResponse(file_path, media_type="audio/mpeg")
-    raise HTTPException(status_code=404, detail="File not found")
+    raise HTTPException(status_code=404, detail="Resource not found")
 
 if __name__ == "__main__":
     import uvicorn
